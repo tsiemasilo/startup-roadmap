@@ -39,7 +39,7 @@ import {
   TrendingUp
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { differenceInDays, formatDistanceToNow, isPast, isToday, isTomorrow } from 'date-fns';
+import { differenceInDays, formatDistanceToNow, isPast, isToday, isTomorrow, isWithinInterval, addDays } from 'date-fns';
 
 const categoryIcons: Record<TaskCategory, any> = {
   equipment: Wrench,
@@ -225,8 +225,35 @@ const Index = () => {
               </div>
               <CardDescription>Track your detailing business setup from start to finish</CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-4">
               <ProgressBar completed={completedCount} total={totalCount} />
+              
+              {/* Stats Grid */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
+                <div className="flex flex-col items-center justify-center p-3 rounded-lg bg-background/50 border border-primary/10">
+                  <p className="text-2xl font-bold text-primary">{totalCount}</p>
+                  <p className="text-xs text-muted-foreground mt-1">Total Tasks</p>
+                </div>
+                <div className="flex flex-col items-center justify-center p-3 rounded-lg bg-background/50 border border-primary/10">
+                  <p className="text-2xl font-bold text-green-600">{completedCount}</p>
+                  <p className="text-xs text-muted-foreground mt-1">Completed</p>
+                </div>
+                <div className="flex flex-col items-center justify-center p-3 rounded-lg bg-background/50 border border-primary/10">
+                  <p className="text-2xl font-bold text-destructive">
+                    {tasks.filter(t => !t.completed && new Date(t.deadline) < new Date()).length}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">Overdue</p>
+                </div>
+                <div className="flex flex-col items-center justify-center p-3 rounded-lg bg-background/50 border border-primary/10">
+                  <p className="text-2xl font-bold text-blue-600">
+                    {tasks.filter(t => !t.completed && isWithinInterval(new Date(t.deadline), {
+                      start: new Date(),
+                      end: addDays(new Date(), 7)
+                    })).length}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">This Week</p>
+                </div>
+              </div>
             </CardContent>
           </Card>
 

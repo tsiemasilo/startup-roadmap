@@ -13,6 +13,11 @@ This is a task management application designed specifically for T&M Detailing's 
 
 ### Dashboard UX Improvements
 - Added **Upcoming Deadlines** sidebar showing top 5 upcoming tasks with deadline badges
+- Enhanced **Business Launch Progress** section with stats grid showing:
+  - Total tasks count
+  - Completed tasks (in green)
+  - Overdue tasks (in red)
+  - Tasks due this week (in blue)
 - Improved category cards with active state highlighting and "Done" badges
 - Enhanced filter section with icons for each category
 - Better responsive layout with improved spacing and organization
