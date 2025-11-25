@@ -10,21 +10,21 @@ import { Progress } from '@/components/ui/progress';
 import { 
   Rocket, 
   Scale, 
-  DollarSign, 
-  Package, 
+  Wrench, 
+  Droplets, 
+  Car, 
   Megaphone, 
-  Settings, 
-  Users,
+  Settings,
   Filter
 } from 'lucide-react';
 
 const categoryIcons: Record<TaskCategory, any> = {
+  equipment: Wrench,
+  supplies: Droplets,
+  vehicle: Car,
   legal: Scale,
-  funding: DollarSign,
-  product: Package,
   marketing: Megaphone,
   operations: Settings,
-  team: Users,
 };
 
 const Index = () => {
@@ -68,11 +68,11 @@ const Index = () => {
         <div className="container mx-auto px-4 py-6">
           <div className="flex items-center gap-3 mb-2">
             <div className="flex items-center justify-center h-12 w-12 rounded-lg bg-primary text-primary-foreground">
-              <Rocket className="h-6 w-6" />
+              <Car className="h-6 w-6" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold">Startup Launch Tracker</h1>
-              <p className="text-muted-foreground">Track your journey from idea to launch</p>
+              <h1 className="text-3xl font-bold">Mobile Car Wash Startup</h1>
+              <p className="text-muted-foreground">Your complete checklist from equipment to first customer</p>
             </div>
           </div>
         </div>
@@ -82,8 +82,8 @@ const Index = () => {
         {/* Overall Progress */}
         <Card className="mb-8 bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20">
           <CardHeader>
-            <CardTitle className="text-2xl">Overall Progress</CardTitle>
-            <CardDescription>Your startup launch journey at a glance</CardDescription>
+            <CardTitle className="text-2xl">Business Launch Progress</CardTitle>
+            <CardDescription>Track your mobile car wash setup from start to finish</CardDescription>
           </CardHeader>
           <CardContent>
             <ProgressBar completed={completedCount} total={totalCount} />
