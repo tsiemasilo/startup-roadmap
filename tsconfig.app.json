@@ -23,8 +23,9 @@
 
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./client/src/*"],
+      "@assets/*": ["./attached_assets/*"]
     }
   },
-  "include": ["src"]
+  "include": ["client/src"]
 }
