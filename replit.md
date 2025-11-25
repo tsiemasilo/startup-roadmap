@@ -1,8 +1,23 @@
-# Car Detailing Business Startup Task Manager
+# T&M Detailing - Business Launch Dashboard
 
 ## Overview
 
-This is a task management application designed specifically for starting a car detailing business. The application helps entrepreneurs track and organize all the essential startup tasks across multiple categories including equipment procurement, supplies, vehicle setup, legal requirements, marketing, and business operations. Built with React, TypeScript, and modern UI components, it provides both list and calendar views to help users stay on track with their business launch timeline.
+This is a task management application designed specifically for T&M Detailing's business launch. The application helps entrepreneurs track and organize all the essential startup tasks across multiple categories including equipment procurement, supplies, vehicle setup, legal requirements, marketing, and business operations. Built with React, TypeScript, and modern UI components, it provides both list and calendar views, an upcoming deadlines sidebar, and an improved dashboard experience to help users stay on track with their business launch timeline.
+
+## Recent Changes (November 25, 2025)
+
+### Rebranding to T&M Detailing
+- Updated application name from "Mobile Car Wash Startup" to "T&M Detailing"
+- Created a new styled logo with gradient background and sparkle effects
+- Improved header design with sticky positioning and backdrop blur
+
+### Dashboard UX Improvements
+- Added **Upcoming Deadlines** sidebar showing top 5 upcoming tasks with deadline badges
+- Improved category cards with active state highlighting and "Done" badges
+- Enhanced filter section with icons for each category
+- Better responsive layout with improved spacing and organization
+- Added visual feedback with hover states and better transitions
+- Improved task list header with card-based design
 
 ## User Preferences
 
