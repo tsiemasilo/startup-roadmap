@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Task, TaskCategory, CATEGORY_LABELS } from '@/types/task';
 import { initialStartupTasks } from '@/data/startupTasks';
 import { TaskCard } from '@/components/TaskCard';
@@ -9,6 +9,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
+import { Badge } from '@/components/ui/badge';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { Separator } from '@/components/ui/separator';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -29,9 +32,14 @@ import {
   Filter,
   Plus,
   CalendarDays,
-  List
+  List,
+  Sparkles,
+  Clock,
+  AlertCircle,
+  TrendingUp
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { differenceInDays, formatDistanceToNow, isPast, isToday, isTomorrow } from 'date-fns';
 
 const categoryIcons: Record<TaskCategory, any> = {
   equipment: Wrench,
@@ -138,90 +146,196 @@ const Index = () => {
 
   const filteredTasks = getFilteredTasks();
 
+  // Get upcoming tasks sorted by deadline
+  const upcomingTasks = useMemo(() => {
+    return tasks
+      .filter(t => !t.completed)
+      .sort((a, b) => new Date(a.deadline).getTime() - new Date(b.deadline).getTime())
+      .slice(0, 5);
+  }, [tasks]);
+
+  const getDeadlineStatus = (deadline: Date) => {
+    if (isPast(deadline) && !isToday(deadline)) {
+      return { label: 'Overdue', variant: 'destructive' as const, icon: AlertCircle };
+    }
+    if (isToday(deadline)) {
+      return { label: 'Today', variant: 'default' as const, icon: Clock };
+    }
+    if (isTomorrow(deadline)) {
+      return { label: 'Tomorrow', variant: 'secondary' as const, icon: Clock };
+    }
+    const daysUntil = differenceInDays(deadline, new Date());
+    if (daysUntil <= 7) {
+      return { label: `${daysUntil} days`, variant: 'secondary' as const, icon: Clock };
+    }
+    return { label: formatDistanceToNow(deadline, { addSuffix: true }), variant: 'outline' as const, icon: Clock };
+  };
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="border-b bg-card">
-        <div className="container mx-auto px-4 py-6">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="flex items-center justify-center h-12 w-12 rounded-lg bg-primary text-primary-foreground">
-              <Car className="h-6 w-6" />
+      <header className="border-b bg-card sticky top-0 z-50 backdrop-blur supports-[backdrop-filter]:bg-card/95">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              {/* Logo */}
+              <div className="relative">
+                <div className="flex items-center justify-center h-14 w-14 rounded-xl bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-lg">
+                  <Sparkles className="h-7 w-7 absolute top-1 right-1 opacity-50" />
+                  <Car className="h-7 w-7" />
+                </div>
+              </div>
+              <div>
+                <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">T&M Detailing</h1>
+                <p className="text-sm text-muted-foreground">Business Launch Dashboard</p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-3xl font-bold">Mobile Car Wash Startup</h1>
-              <p className="text-muted-foreground">Your complete checklist from equipment to first customer</p>
+            <div className="flex items-center gap-2">
+              <Button
+                variant={viewMode === 'list' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setViewMode('list')}
+                data-testid="button-view-list"
+              >
+                <List className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">List</span>
+              </Button>
+              <Button
+                variant={viewMode === 'calendar' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setViewMode('calendar')}
+                data-testid="button-view-calendar"
+              >
+                <CalendarDays className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">Calendar</span>
+              </Button>
             </div>
           </div>
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-8">
-        {/* Overall Progress */}
-        <Card className="mb-8 bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="text-2xl">Business Launch Progress</CardTitle>
-                <CardDescription>Track your mobile car wash setup from start to finish</CardDescription>
+      <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+          {/* Overall Progress */}
+          <Card className="lg:col-span-2 bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20">
+            <CardHeader>
+              <div className="flex items-center gap-2 mb-1">
+                <TrendingUp className="h-5 w-5 text-primary" />
+                <CardTitle className="text-xl">Business Launch Progress</CardTitle>
               </div>
-              <div className="flex gap-2">
-                <Button
-                  variant={viewMode === 'list' ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setViewMode('list')}
-                >
-                  <List className="h-4 w-4 mr-2" />
-                  List
-                </Button>
-                <Button
-                  variant={viewMode === 'calendar' ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setViewMode('calendar')}
-                >
-                  <CalendarDays className="h-4 w-4 mr-2" />
-                  Calendar
-                </Button>
+              <CardDescription>Track your detailing business setup from start to finish</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ProgressBar completed={completedCount} total={totalCount} />
+            </CardContent>
+          </Card>
+
+          {/* Upcoming Deadlines */}
+          <Card className="lg:col-span-1">
+            <CardHeader className="pb-3">
+              <div className="flex items-center gap-2">
+                <Clock className="h-5 w-5 text-primary" />
+                <CardTitle className="text-xl">Upcoming</CardTitle>
               </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <ProgressBar completed={completedCount} total={totalCount} />
-          </CardContent>
-        </Card>
+            </CardHeader>
+            <CardContent>
+              {upcomingTasks.length > 0 ? (
+                <div className="space-y-3">
+                  {upcomingTasks.map((task) => {
+                    const status = getDeadlineStatus(new Date(task.deadline));
+                    const StatusIcon = status.icon;
+                    return (
+                      <div 
+                        key={task.id} 
+                        className="flex items-start gap-2 p-2 rounded-md hover-elevate cursor-pointer"
+                        onClick={() => {
+                          setFilterCategory(task.category);
+                          setViewMode('list');
+                        }}
+                        data-testid={`upcoming-task-${task.id}`}
+                      >
+                        <StatusIcon className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate">{task.title}</p>
+                          <div className="flex items-center gap-2 mt-1">
+                            <Badge variant={status.variant} className="text-xs">
+                              {status.label}
+                            </Badge>
+                            <span className="text-xs text-muted-foreground">
+                              {CATEGORY_LABELS[task.category]}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground text-center py-4">
+                  All tasks completed!
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        </div>
 
         {/* Category Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
-          {(Object.keys(CATEGORY_LABELS) as TaskCategory[]).map((category) => {
-            const stats = getCategoryStats(category);
-            const Icon = categoryIcons[category];
-            const percentage = stats.total > 0 ? Math.round((stats.completed / stats.total) * 100) : 0;
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-semibold">Categories</h2>
+            <Badge variant="outline" data-testid="badge-total-categories">
+              {Object.keys(CATEGORY_LABELS).length} total
+            </Badge>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {(Object.keys(CATEGORY_LABELS) as TaskCategory[]).map((category) => {
+              const stats = getCategoryStats(category);
+              const Icon = categoryIcons[category];
+              const percentage = stats.total > 0 ? Math.round((stats.completed / stats.total) * 100) : 0;
+              const isActive = filterCategory === category;
 
-            return (
-              <Card 
-                key={category}
-                className="cursor-pointer transition-all hover:shadow-md hover:border-primary/50"
-                onClick={() => setFilterCategory(category)}
-              >
-                <CardHeader className="pb-3">
-                  <div className="flex items-center gap-2">
-                    <div className="flex items-center justify-center h-8 w-8 rounded-md bg-primary/10 text-primary">
-                      <Icon className="h-4 w-4" />
+              return (
+                <Card 
+                  key={category}
+                  className={`cursor-pointer transition-all hover-elevate ${
+                    isActive ? 'border-primary/50 shadow-md' : ''
+                  }`}
+                  onClick={() => {
+                    setFilterCategory(category);
+                    setViewMode('list');
+                  }}
+                  data-testid={`card-category-${category}`}
+                >
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className={`flex items-center justify-center h-9 w-9 rounded-lg ${
+                          isActive ? 'bg-primary text-primary-foreground' : 'bg-primary/10 text-primary'
+                        }`}>
+                          <Icon className="h-5 w-5" />
+                        </div>
+                        <CardTitle className="text-base">{CATEGORY_LABELS[category]}</CardTitle>
+                      </div>
+                      {percentage === 100 && stats.total > 0 && (
+                        <Badge variant="default" className="text-xs">
+                          Done
+                        </Badge>
+                      )}
                     </div>
-                    <CardTitle className="text-base">{CATEGORY_LABELS[category]}</CardTitle>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">{stats.completed} / {stats.total} tasks</span>
-                      <span className="font-semibold text-primary">{percentage}%</span>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">{stats.completed} / {stats.total} tasks</span>
+                        <span className="font-semibold text-primary">{percentage}%</span>
+                      </div>
+                      <Progress value={percentage} className="h-2" />
                     </div>
-                    <Progress value={percentage} className="h-1.5" />
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
         </div>
 
         {viewMode === 'calendar' ? (
@@ -235,48 +349,66 @@ const Index = () => {
         ) : (
           <>
             {/* Filter Bar */}
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-2">
-                <Filter className="h-5 w-5 text-muted-foreground" />
-                <span className="font-semibold">Filter:</span>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  variant={filterCategory === 'all' ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setFilterCategory('all')}
-                >
-                  All Tasks
-                </Button>
-                {(Object.keys(CATEGORY_LABELS) as TaskCategory[]).map((category) => (
-                  <Button
-                    key={category}
-                    variant={filterCategory === category ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => setFilterCategory(category)}
-                  >
-                    {CATEGORY_LABELS[category]}
-                  </Button>
-                ))}
-              </div>
-            </div>
+            <Card className="mb-6">
+              <CardContent className="pt-6">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <Filter className="h-5 w-5 text-muted-foreground" />
+                    <span className="font-semibold text-sm">Filter by:</span>
+                  </div>
+                  <Separator orientation="vertical" className="hidden sm:block h-6" />
+                  <div className="flex flex-wrap gap-2 flex-1">
+                    <Button
+                      variant={filterCategory === 'all' ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setFilterCategory('all')}
+                      data-testid="filter-all"
+                      className="flex-shrink-0"
+                    >
+                      All Tasks
+                    </Button>
+                    {(Object.keys(CATEGORY_LABELS) as TaskCategory[]).map((category) => {
+                      const Icon = categoryIcons[category];
+                      return (
+                        <Button
+                          key={category}
+                          variant={filterCategory === category ? 'default' : 'outline'}
+                          size="sm"
+                          onClick={() => setFilterCategory(category)}
+                          data-testid={`filter-${category}`}
+                          className="flex-shrink-0"
+                        >
+                          <Icon className="h-3.5 w-3.5 mr-1.5" />
+                          {CATEGORY_LABELS[category]}
+                        </Button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
 
             {/* Tasks List */}
             <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h2 className="text-2xl font-bold">
-                  {filterCategory === 'all' ? 'All Tasks' : CATEGORY_LABELS[filterCategory]}
-                </h2>
-                <div className="flex items-center gap-3">
-                  <span className="text-sm text-muted-foreground">
-                    {filteredTasks.length} {filteredTasks.length === 1 ? 'task' : 'tasks'}
-                  </span>
-                  <Button onClick={handleAddTask}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Task
-                  </Button>
-                </div>
-              </div>
+              <Card>
+                <CardHeader>
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <div>
+                      <CardTitle className="text-xl">
+                        {filterCategory === 'all' ? 'All Tasks' : CATEGORY_LABELS[filterCategory]}
+                      </CardTitle>
+                      <CardDescription className="mt-1">
+                        {filteredTasks.length} {filteredTasks.length === 1 ? 'task' : 'tasks'} 
+                        {filterCategory !== 'all' && ' in this category'}
+                      </CardDescription>
+                    </div>
+                    <Button onClick={handleAddTask} data-testid="button-add-task">
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Task
+                    </Button>
+                  </div>
+                </CardHeader>
+              </Card>
               
               <div className="grid gap-4">
                 {filteredTasks.map((task) => (
