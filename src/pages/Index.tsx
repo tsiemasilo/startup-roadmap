@@ -3,20 +3,35 @@ import { Task, TaskCategory, CATEGORY_LABELS } from '@/types/task';
 import { initialStartupTasks } from '@/data/startupTasks';
 import { TaskCard } from '@/components/TaskCard';
 import { ProgressBar } from '@/components/ProgressBar';
+import { TaskDialog } from '@/components/TaskDialog';
+import { CalendarView } from '@/components/CalendarView';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { 
-  Rocket, 
   Scale, 
   Wrench, 
   Droplets, 
   Car, 
   Megaphone, 
   Settings,
-  Filter
+  Filter,
+  Plus,
+  CalendarDays,
+  List
 } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 const categoryIcons: Record<TaskCategory, any> = {
   equipment: Wrench,
@@ -30,6 +45,13 @@ const categoryIcons: Record<TaskCategory, any> = {
 const Index = () => {
   const [tasks, setTasks] = useState<Task[]>(initialStartupTasks);
   const [filterCategory, setFilterCategory] = useState<TaskCategory | 'all'>('all');
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [dialogMode, setDialogMode] = useState<'create' | 'edit'>('create');
+  const [editingTask, setEditingTask] = useState<Task | undefined>();
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [taskToDelete, setTaskToDelete] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
+  const { toast } = useToast();
 
   const handleToggleTask = (taskId: string) => {
     setTasks(prevTasks =>
@@ -43,6 +65,61 @@ const Index = () => {
           : task
       )
     );
+  };
+
+  const handleAddTask = () => {
+    setDialogMode('create');
+    setEditingTask(undefined);
+    setDialogOpen(true);
+  };
+
+  const handleEditTask = (task: Task) => {
+    setDialogMode('edit');
+    setEditingTask(task);
+    setDialogOpen(true);
+  };
+
+  const handleDeleteTask = (taskId: string) => {
+    setTaskToDelete(taskId);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (taskToDelete) {
+      setTasks(prevTasks => prevTasks.filter(t => t.id !== taskToDelete));
+      toast({
+        title: 'Task deleted',
+        description: 'The task has been removed from your checklist.',
+      });
+    }
+    setDeleteDialogOpen(false);
+    setTaskToDelete(null);
+  };
+
+  const handleSaveTask = (taskData: Omit<Task, 'id' | 'completedAt'>) => {
+    if (dialogMode === 'create') {
+      const newTask: Task = {
+        ...taskData,
+        id: Date.now().toString(),
+      };
+      setTasks(prevTasks => [...prevTasks, newTask]);
+      toast({
+        title: 'Task added',
+        description: 'Your new task has been added to the checklist.',
+      });
+    } else if (editingTask) {
+      setTasks(prevTasks =>
+        prevTasks.map(task =>
+          task.id === editingTask.id
+            ? { ...task, ...taskData }
+            : task
+        )
+      );
+      toast({
+        title: 'Task updated',
+        description: 'Your changes have been saved.',
+      });
+    }
   };
 
   const completedCount = tasks.filter(t => t.completed).length;
@@ -82,8 +159,30 @@ const Index = () => {
         {/* Overall Progress */}
         <Card className="mb-8 bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20">
           <CardHeader>
-            <CardTitle className="text-2xl">Business Launch Progress</CardTitle>
-            <CardDescription>Track your mobile car wash setup from start to finish</CardDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-2xl">Business Launch Progress</CardTitle>
+                <CardDescription>Track your mobile car wash setup from start to finish</CardDescription>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant={viewMode === 'list' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setViewMode('list')}
+                >
+                  <List className="h-4 w-4 mr-2" />
+                  List
+                </Button>
+                <Button
+                  variant={viewMode === 'calendar' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setViewMode('calendar')}
+                >
+                  <CalendarDays className="h-4 w-4 mr-2" />
+                  Calendar
+                </Button>
+              </div>
+            </div>
           </CardHeader>
           <CardContent>
             <ProgressBar completed={completedCount} total={totalCount} />
@@ -125,59 +224,114 @@ const Index = () => {
           })}
         </div>
 
-        {/* Filter Bar */}
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-2">
-            <Filter className="h-5 w-5 text-muted-foreground" />
-            <span className="font-semibold">Filter:</span>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Button
-              variant={filterCategory === 'all' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setFilterCategory('all')}
-            >
-              All Tasks
-            </Button>
-            {(Object.keys(CATEGORY_LABELS) as TaskCategory[]).map((category) => (
-              <Button
-                key={category}
-                variant={filterCategory === category ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setFilterCategory(category)}
-              >
-                {CATEGORY_LABELS[category]}
-              </Button>
-            ))}
-          </div>
-        </div>
+        {viewMode === 'calendar' ? (
+          <CalendarView 
+            tasks={tasks} 
+            onTaskClick={(task) => {
+              setViewMode('list');
+              setFilterCategory(task.category);
+            }}
+          />
+        ) : (
+          <>
+            {/* Filter Bar */}
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-2">
+                <Filter className="h-5 w-5 text-muted-foreground" />
+                <span className="font-semibold">Filter:</span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  variant={filterCategory === 'all' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setFilterCategory('all')}
+                >
+                  All Tasks
+                </Button>
+                {(Object.keys(CATEGORY_LABELS) as TaskCategory[]).map((category) => (
+                  <Button
+                    key={category}
+                    variant={filterCategory === category ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setFilterCategory(category)}
+                  >
+                    {CATEGORY_LABELS[category]}
+                  </Button>
+                ))}
+              </div>
+            </div>
 
-        {/* Tasks List */}
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-bold">
-              {filterCategory === 'all' ? 'All Tasks' : CATEGORY_LABELS[filterCategory]}
-            </h2>
-            <span className="text-sm text-muted-foreground">
-              {filteredTasks.length} {filteredTasks.length === 1 ? 'task' : 'tasks'}
-            </span>
-          </div>
-          
-          <div className="grid gap-4">
-            {filteredTasks.map((task) => (
-              <TaskCard key={task.id} task={task} onToggle={handleToggleTask} />
-            ))}
-          </div>
+            {/* Tasks List */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h2 className="text-2xl font-bold">
+                  {filterCategory === 'all' ? 'All Tasks' : CATEGORY_LABELS[filterCategory]}
+                </h2>
+                <div className="flex items-center gap-3">
+                  <span className="text-sm text-muted-foreground">
+                    {filteredTasks.length} {filteredTasks.length === 1 ? 'task' : 'tasks'}
+                  </span>
+                  <Button onClick={handleAddTask}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Task
+                  </Button>
+                </div>
+              </div>
+              
+              <div className="grid gap-4">
+                {filteredTasks.map((task) => (
+                  <TaskCard 
+                    key={task.id} 
+                    task={task} 
+                    onToggle={handleToggleTask}
+                    onEdit={handleEditTask}
+                    onDelete={handleDeleteTask}
+                  />
+                ))}
+              </div>
 
-          {filteredTasks.length === 0 && (
-            <Card className="text-center py-12">
-              <CardContent>
-                <p className="text-muted-foreground">No tasks found in this category.</p>
-              </CardContent>
-            </Card>
-          )}
-        </div>
+              {filteredTasks.length === 0 && (
+                <Card className="text-center py-12">
+                  <CardContent>
+                    <p className="text-muted-foreground mb-4">No tasks found in this category.</p>
+                    <Button onClick={handleAddTask}>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Your First Task
+                    </Button>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          </>
+        )}
       </main>
+
+      {/* Task Dialog */}
+      <TaskDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        onSave={handleSaveTask}
+        task={editingTask}
+        mode={dialogMode}
+      />
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Task?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the task from your checklist.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
