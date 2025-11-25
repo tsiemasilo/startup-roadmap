@@ -59,31 +59,38 @@ export const TaskCard = ({ task, onToggle, onEdit, onDelete }: TaskCardProps) =>
 
   return (
     <Card 
-      className={`border-l-4 ${getPriorityColor()} transition-all hover:shadow-md ${
+      className={`group border-l-4 ${getPriorityColor()} transition-all duration-300 hover:shadow-lg hover:-translate-y-1 animate-slide-in-up ${
         task.completed ? 'opacity-60' : ''
       }`}
+      data-testid={`task-card-${task.id}`}
     >
       <CardHeader className="pb-3">
         <div className="flex items-start gap-3">
-          <Checkbox
-            checked={task.completed}
-            onCheckedChange={() => onToggle(task.id)}
-            className="mt-1"
-          />
+          <div className={task.completed ? 'animate-check-bounce' : ''}>
+            <Checkbox
+              checked={task.completed}
+              onCheckedChange={() => onToggle(task.id)}
+              className="mt-1 transition-all duration-200 hover:scale-110"
+              data-testid={`checkbox-task-${task.id}`}
+            />
+          </div>
           <div className="flex-1">
             <div className="flex items-start justify-between gap-2">
-              <CardTitle className={`text-lg ${task.completed ? 'line-through' : ''}`}>
+              <CardTitle className={`text-lg transition-all duration-300 ${task.completed ? 'line-through text-muted-foreground' : ''}`}>
                 {task.title}
               </CardTitle>
-              <div className="flex items-center gap-2">
-                {getStatusBadge()}
-                <div className="flex gap-1">
+              <div className="flex items-center gap-2 flex-wrap">
+                <div className="animate-fade-in">
+                  {getStatusBadge()}
+                </div>
+                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                   {onEdit && (
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-8 w-8"
+                      className="h-8 w-8 hover:scale-110 transition-transform duration-200"
                       onClick={() => onEdit(task)}
+                      data-testid={`button-edit-task-${task.id}`}
                     >
                       <Pencil className="h-4 w-4" />
                     </Button>
@@ -92,8 +99,9 @@ export const TaskCard = ({ task, onToggle, onEdit, onDelete }: TaskCardProps) =>
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-8 w-8 text-destructive hover:text-destructive"
+                      className="h-8 w-8 text-destructive hover:text-destructive hover:scale-110 transition-transform duration-200"
                       onClick={() => onDelete(task.id)}
+                      data-testid={`button-delete-task-${task.id}`}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -101,7 +109,7 @@ export const TaskCard = ({ task, onToggle, onEdit, onDelete }: TaskCardProps) =>
                 </div>
               </div>
             </div>
-            <CardDescription className="mt-1">{task.description}</CardDescription>
+            <CardDescription className="mt-1 transition-all duration-300">{task.description}</CardDescription>
           </div>
         </div>
       </CardHeader>
@@ -112,7 +120,7 @@ export const TaskCard = ({ task, onToggle, onEdit, onDelete }: TaskCardProps) =>
             <span>Due: {format(task.deadline, 'MMM d, yyyy')}</span>
           </div>
           {task.completed && task.completedAt && (
-            <div className="flex items-center gap-1 text-primary">
+            <div className="flex items-center gap-1 text-primary animate-fade-in">
               <CheckCircle2 className="h-4 w-4" />
               <span>Completed: {format(task.completedAt, 'MMM d, yyyy')}</span>
             </div>

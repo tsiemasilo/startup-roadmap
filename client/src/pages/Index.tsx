@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Task, TaskCategory, CATEGORY_LABELS } from '@/types/task';
 import { initialStartupTasks } from '@/data/startupTasks';
 import { TaskCard } from '@/components/TaskCard';
@@ -12,6 +12,15 @@ import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { Separator } from '@/components/ui/separator';
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from '@/components/ui/pagination';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -59,6 +68,9 @@ const Index = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [taskToDelete, setTaskToDelete] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'completed'>('all');
+  const tasksPerPage = 6;
   const { toast } = useToast();
 
   const handleToggleTask = (taskId: string) => {
@@ -140,11 +152,43 @@ const Index = () => {
   };
 
   const getFilteredTasks = () => {
-    if (filterCategory === 'all') return tasks;
-    return tasks.filter(t => t.category === filterCategory);
+    let filtered = tasks;
+    
+    if (filterCategory !== 'all') {
+      filtered = filtered.filter(t => t.category === filterCategory);
+    }
+    
+    if (filterStatus === 'active') {
+      filtered = filtered.filter(t => !t.completed);
+    } else if (filterStatus === 'completed') {
+      filtered = filtered.filter(t => t.completed);
+    }
+    
+    return filtered;
   };
 
   const filteredTasks = getFilteredTasks();
+  const totalPages = Math.ceil(filteredTasks.length / tasksPerPage);
+  const startIndex = (currentPage - 1) * tasksPerPage;
+  const endIndex = startIndex + tasksPerPage;
+  const paginatedTasks = filteredTasks.slice(startIndex, endIndex);
+  
+  useEffect(() => {
+    const nextPage = totalPages === 0 ? 1 : Math.min(currentPage, totalPages);
+    if (nextPage !== currentPage) {
+      setCurrentPage(nextPage);
+    }
+  }, [totalPages, currentPage]);
+  
+  const handleFilterChange = (category: TaskCategory | 'all') => {
+    setFilterCategory(category);
+    setCurrentPage(1);
+  };
+  
+  const handleStatusFilterChange = (status: 'all' | 'active' | 'completed') => {
+    setFilterStatus(status);
+    setCurrentPage(1);
+  };
 
   // Get upcoming tasks sorted by deadline
   const upcomingTasks = useMemo(() => {
@@ -375,41 +419,86 @@ const Index = () => {
           />
         ) : (
           <>
-            {/* Filter Bar */}
-            <Card className="mb-6">
+            {/* Modern Filter Bar */}
+            <Card className="mb-6 overflow-visible border-primary/20 shadow-md animate-slide-in-down">
               <CardContent className="pt-6">
-                <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    <Filter className="h-5 w-5 text-muted-foreground" />
-                    <span className="font-semibold text-sm">Filter by:</span>
+                <div className="space-y-6">
+                  {/* Status Filter */}
+                  <div className="flex flex-col gap-3">
+                    <div className="flex items-center gap-2">
+                      <Filter className="h-5 w-5 text-primary" />
+                      <span className="font-semibold">Filter Tasks</span>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        variant={filterStatus === 'all' ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => handleStatusFilterChange('all')}
+                        data-testid="filter-status-all"
+                        className="transition-all duration-200"
+                      >
+                        <Sparkles className="h-3.5 w-3.5 mr-1.5" />
+                        All ({tasks.length})
+                      </Button>
+                      <Button
+                        variant={filterStatus === 'active' ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => handleStatusFilterChange('active')}
+                        data-testid="filter-status-active"
+                        className="transition-all duration-200"
+                      >
+                        <Clock className="h-3.5 w-3.5 mr-1.5" />
+                        Active ({tasks.filter(t => !t.completed).length})
+                      </Button>
+                      <Button
+                        variant={filterStatus === 'completed' ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => handleStatusFilterChange('completed')}
+                        data-testid="filter-status-completed"
+                        className="transition-all duration-200"
+                      >
+                        <AlertCircle className="h-3.5 w-3.5 mr-1.5" />
+                        Completed ({tasks.filter(t => t.completed).length})
+                      </Button>
+                    </div>
                   </div>
-                  <Separator orientation="vertical" className="hidden sm:block h-6" />
-                  <div className="flex flex-wrap gap-2 flex-1">
-                    <Button
-                      variant={filterCategory === 'all' ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => setFilterCategory('all')}
-                      data-testid="filter-all"
-                      className="flex-shrink-0"
-                    >
-                      All Tasks
-                    </Button>
-                    {(Object.keys(CATEGORY_LABELS) as TaskCategory[]).map((category) => {
-                      const Icon = categoryIcons[category];
-                      return (
-                        <Button
-                          key={category}
-                          variant={filterCategory === category ? 'default' : 'outline'}
-                          size="sm"
-                          onClick={() => setFilterCategory(category)}
-                          data-testid={`filter-${category}`}
-                          className="flex-shrink-0"
-                        >
-                          <Icon className="h-3.5 w-3.5 mr-1.5" />
-                          {CATEGORY_LABELS[category]}
-                        </Button>
-                      );
-                    })}
+
+                  <Separator className="my-4" />
+                  
+                  {/* Category Filter */}
+                  <div className="flex flex-col gap-3">
+                    <span className="font-semibold text-sm text-muted-foreground">By Category</span>
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        variant={filterCategory === 'all' ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => handleFilterChange('all')}
+                        data-testid="filter-all"
+                        className="transition-all duration-200 hover:scale-105"
+                      >
+                        All Categories
+                      </Button>
+                      {(Object.keys(CATEGORY_LABELS) as TaskCategory[]).map((category) => {
+                        const Icon = categoryIcons[category];
+                        const stats = getCategoryStats(category);
+                        return (
+                          <Button
+                            key={category}
+                            variant={filterCategory === category ? 'default' : 'outline'}
+                            size="sm"
+                            onClick={() => handleFilterChange(category)}
+                            data-testid={`filter-${category}`}
+                            className="transition-all duration-200 hover:scale-105 gap-2"
+                          >
+                            <Icon className="h-3.5 w-3.5" />
+                            <span>{CATEGORY_LABELS[category]}</span>
+                            <Badge variant="secondary" className="ml-1 text-xs">
+                              {stats.completed}/{stats.total}
+                            </Badge>
+                          </Button>
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
               </CardContent>
@@ -417,7 +506,7 @@ const Index = () => {
 
             {/* Tasks List */}
             <div className="space-y-4">
-              <Card>
+              <Card className="animate-fade-in">
                 <CardHeader>
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                     <div>
@@ -425,38 +514,119 @@ const Index = () => {
                         {filterCategory === 'all' ? 'All Tasks' : CATEGORY_LABELS[filterCategory]}
                       </CardTitle>
                       <CardDescription className="mt-1">
-                        {filteredTasks.length} {filteredTasks.length === 1 ? 'task' : 'tasks'} 
-                        {filterCategory !== 'all' && ' in this category'}
+                        Showing {startIndex + 1}-{Math.min(endIndex, filteredTasks.length)} of {filteredTasks.length} {filteredTasks.length === 1 ? 'task' : 'tasks'}
+                        {filterCategory !== 'all' && ` in ${CATEGORY_LABELS[filterCategory]}`}
+                        {filterStatus !== 'all' && ` (${filterStatus})`}
                       </CardDescription>
                     </div>
-                    <Button onClick={handleAddTask} data-testid="button-add-task">
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add Task
+                    <Button 
+                      onClick={handleAddTask} 
+                      data-testid="button-add-task"
+                      className="group relative overflow-hidden transition-all duration-300 hover:shadow-lg hover:scale-105"
+                    >
+                      <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-primary/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                      <Plus className="h-4 w-4 mr-2 transition-transform duration-300 group-hover:rotate-90" />
+                      <span className="relative">Add Task</span>
                     </Button>
                   </div>
                 </CardHeader>
               </Card>
               
-              <div className="grid gap-4">
-                {filteredTasks.map((task) => (
-                  <TaskCard 
-                    key={task.id} 
-                    task={task} 
-                    onToggle={handleToggleTask}
-                    onEdit={handleEditTask}
-                    onDelete={handleDeleteTask}
-                  />
-                ))}
-              </div>
+              {paginatedTasks.length > 0 ? (
+                <>
+                  <div className="grid gap-4">
+                    {paginatedTasks.map((task, index) => (
+                      <div 
+                        key={task.id} 
+                        style={{ animationDelay: `${index * 50}ms` }}
+                      >
+                        <TaskCard 
+                          task={task} 
+                          onToggle={handleToggleTask}
+                          onEdit={handleEditTask}
+                          onDelete={handleDeleteTask}
+                        />
+                      </div>
+                    ))}
+                  </div>
 
-              {filteredTasks.length === 0 && (
-                <Card className="text-center py-12">
+                  {/* Pagination */}
+                  {totalPages > 1 && filteredTasks.length > 0 && (
+                    <Card className="mt-6 animate-fade-in">
+                      <CardContent className="pt-6">
+                        <Pagination>
+                          <PaginationContent>
+                            <PaginationItem>
+                              <PaginationPrevious
+                                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                                disabled={currentPage === 1}
+                                data-testid="pagination-previous"
+                              />
+                            </PaginationItem>
+                            
+                            {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
+                              if (
+                                page === 1 ||
+                                page === totalPages ||
+                                (page >= currentPage - 1 && page <= currentPage + 1)
+                              ) {
+                                return (
+                                  <PaginationItem key={page}>
+                                    <PaginationLink
+                                      onClick={() => setCurrentPage(page)}
+                                      isActive={currentPage === page}
+                                      data-testid={`pagination-page-${page}`}
+                                    >
+                                      {page}
+                                    </PaginationLink>
+                                  </PaginationItem>
+                                );
+                              } else if (
+                                page === currentPage - 2 ||
+                                page === currentPage + 2
+                              ) {
+                                return (
+                                  <PaginationItem key={page}>
+                                    <PaginationEllipsis />
+                                  </PaginationItem>
+                                );
+                              }
+                              return null;
+                            })}
+                            
+                            <PaginationItem>
+                              <PaginationNext
+                                onClick={() => setCurrentPage(prev => Math.min(totalPages || 1, prev + 1))}
+                                disabled={currentPage === totalPages}
+                                data-testid="pagination-next"
+                              />
+                            </PaginationItem>
+                          </PaginationContent>
+                        </Pagination>
+                      </CardContent>
+                    </Card>
+                  )}
+                </>
+              ) : (
+                <Card className="text-center py-12 animate-fade-in">
                   <CardContent>
-                    <p className="text-muted-foreground mb-4">No tasks found in this category.</p>
-                    <Button onClick={handleAddTask}>
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add Your First Task
-                    </Button>
+                    <div className="flex flex-col items-center gap-4">
+                      <div className="rounded-full bg-muted p-6">
+                        <Filter className="h-12 w-12 text-muted-foreground" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-lg mb-2">No tasks found</h3>
+                        <p className="text-muted-foreground mb-4">
+                          {filterCategory !== 'all' || filterStatus !== 'all'
+                            ? 'Try adjusting your filters to see more tasks.'
+                            : 'Get started by creating your first task.'}
+                        </p>
+                      </div>
+                      <Button onClick={handleAddTask} className="animate-pulse-glow">
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add Your First Task
+                      </Button>
+                    </div>
                   </CardContent>
                 </Card>
               )}
