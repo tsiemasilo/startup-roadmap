@@ -2,15 +2,18 @@ import { Task } from '@/types/task';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, Clock, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Calendar, Clock, CheckCircle2, AlertCircle, Pencil, Trash2 } from 'lucide-react';
 import { format, isPast, differenceInDays } from 'date-fns';
 
 interface TaskCardProps {
   task: Task;
   onToggle: (taskId: string) => void;
+  onEdit?: (task: Task) => void;
+  onDelete?: (taskId: string) => void;
 }
 
-export const TaskCard = ({ task, onToggle }: TaskCardProps) => {
+export const TaskCard = ({ task, onToggle, onEdit, onDelete }: TaskCardProps) => {
   const isOverdue = !task.completed && isPast(task.deadline);
   const daysUntilDeadline = differenceInDays(task.deadline, new Date());
   
@@ -72,7 +75,31 @@ export const TaskCard = ({ task, onToggle }: TaskCardProps) => {
               <CardTitle className={`text-lg ${task.completed ? 'line-through' : ''}`}>
                 {task.title}
               </CardTitle>
-              {getStatusBadge()}
+              <div className="flex items-center gap-2">
+                {getStatusBadge()}
+                <div className="flex gap-1">
+                  {onEdit && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => onEdit(task)}
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                  )}
+                  {onDelete && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-destructive hover:text-destructive"
+                      onClick={() => onDelete(task.id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+              </div>
             </div>
             <CardDescription className="mt-1">{task.description}</CardDescription>
           </div>
