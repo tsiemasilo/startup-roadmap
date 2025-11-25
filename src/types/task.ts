@@ -10,18 +10,18 @@ export interface Task {
 }
 
 export type TaskCategory = 
+  | 'equipment'
+  | 'supplies'
+  | 'vehicle'
   | 'legal'
-  | 'funding'
-  | 'product'
   | 'marketing'
-  | 'operations'
-  | 'team';
+  | 'operations';
 
 export const CATEGORY_LABELS: Record<TaskCategory, string> = {
-  legal: 'Legal & Compliance',
-  funding: 'Funding & Finance',
-  product: 'Product Development',
+  equipment: 'Equipment & Tools',
+  supplies: 'Cleaning Supplies',
+  vehicle: 'Vehicle Setup',
+  legal: 'Legal & Insurance',
   marketing: 'Marketing & Branding',
-  operations: 'Operations',
-  team: 'Team Building',
+  operations: 'Business Operations',
 };
